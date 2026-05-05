@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+
+# Build/distribuição
+build_pyinstaller/
+*.spec
+distribuicao_exe.zip
+
+# Artefatos de execução
+fechamento_caixa.db
+ultimo_cupom.txt
+ultimo_cupom_80colunas.txt
+relatorio_fechamento.pdf
+relatorio_fechamento_80colunas.pdf
+
