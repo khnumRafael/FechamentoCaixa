@@ -642,7 +642,7 @@ class FechamentoCaixaApp(tk.Tk):
         style.configure("EnderecoCab.TLabel", font=("Segoe UI", 9))
         style.configure("Campo.TLabel", font=("Segoe UI", 9))
         style.configure("Total.TLabel", font=("Segoe UI", 12, "bold"), foreground="#0b6e4f")
-        style.configure("Acao.TButton", padding=(10, 5))
+        style.configure("Acao.TButton", padding=(6, 3))
 
     def _aplicar_textos_cabecalho_gui(self) -> None:
         self._cab_razao_var.set(self.cfg.razao_social.strip())
@@ -671,6 +671,37 @@ class FechamentoCaixaApp(tk.Tk):
         self._popular_combo_impressoras(atualizar_status=False)
         self._set_status("Arquivo INI recarregado.")
 
+    def _abrir_modal_sobre(self) -> None:
+        modal = tk.Toplevel(self)
+        modal.title("Sobre")
+        modal.transient(self)
+        modal.grab_set()
+        modal.resizable(False, False)
+
+        corpo = ttk.Frame(modal, padding=(14, 12))
+        corpo.grid(row=0, column=0, sticky="nsew")
+        corpo.columnconfigure(0, weight=1)
+
+        ttk.Label(corpo, text="Fechamento de Caixa", style="Titulo.TLabel").grid(
+            row=0, column=0, sticky="w"
+        )
+
+        razao = self._cab_razao_var.get().strip() or "(não informado)"
+        endereco = self._cab_endereco_var.get().strip() or "(não informado)"
+        atalhos = "Ctrl+I incluir · F9 imprimir cupom · Delete excluir linha"
+        texto_info = f"Razão social: {razao}\nEndereço: {endereco}\nAtalhos: {atalhos}"
+        ttk.Label(
+            corpo,
+            text=texto_info,
+            style="Subtitulo.TLabel",
+            justify="left",
+        ).grid(row=1, column=0, sticky="w", pady=(8, 0))
+
+        ttk.Button(corpo, text="Fechar", command=modal.destroy).grid(
+            row=2, column=0, sticky="e", pady=(12, 0)
+        )
+        modal.bind("<Escape>", lambda _event: modal.destroy())
+
     def _montar_tela(self) -> None:
         px = 10
         py = 8
@@ -685,46 +716,14 @@ class FechamentoCaixaApp(tk.Tk):
 
         aba_lancamento = ttk.Frame(abas, padding=(6, 6))
         aba_lancamento.columnconfigure(0, weight=1)
-        aba_lancamento.rowconfigure(2, weight=1)
+        aba_lancamento.rowconfigure(1, weight=1)
         abas.add(aba_lancamento, text="Lançamento")
 
-        # --- Zona 1: cabecalho (titulo + empresa + atalhos) ---
-        frm_topo = ttk.LabelFrame(aba_lancamento, text=" Identificação ", padding=(px, py))
-        frm_topo.grid(row=0, column=0, sticky="ew", pady=(0, py))
-        frm_topo.columnconfigure(0, weight=1)
-
-        ttk.Label(frm_topo, text="Fechamento de Caixa", style="Titulo.TLabel").grid(
-            row=0, column=0, sticky="w"
-        )
-        ttk.Label(
-            frm_topo,
-            textvariable=self._cab_razao_var,
-            style="EmpresaCab.TLabel",
-        ).grid(row=1, column=0, sticky="w", pady=(4, 0))
-        ttk.Label(
-            frm_topo,
-            textvariable=self._cab_endereco_var,
-            style="EnderecoCab.TLabel",
-        ).grid(row=2, column=0, sticky="w")
-
-        barra_topo = ttk.Frame(frm_topo)
-        barra_topo.grid(row=3, column=0, sticky="ew", pady=(py, 0))
-        barra_topo.columnconfigure(0, weight=1)
-
-        ttk.Label(
-            barra_topo,
-            text="Atalhos: Ctrl+I incluir · F9 imprimir cupom · Delete excluir linha",
-            style="Subtitulo.TLabel",
-        ).grid(row=0, column=0, sticky="w")
-        ttk.Button(barra_topo, text="Recarregar INI", command=self._recarregar_ini).grid(
-            row=0, column=1, sticky="e", padx=(px, 0)
-        )
-
-        # --- Zona 2: formulario de lancamento ---
+        # --- Zona 1: formulario de lancamento ---
         frm_entrada = ttk.LabelFrame(aba_lancamento, text=" Registrar lançamento ", padding=(px, py))
-        frm_entrada.grid(row=1, column=0, sticky="ew", pady=(0, py))
+        frm_entrada.grid(row=0, column=0, sticky="ew", pady=(0, py))
         frm_entrada.columnconfigure(1, weight=2)
-        frm_entrada.columnconfigure(3, weight=1)
+        frm_entrada.columnconfigure(3, weight=0)
 
         ttk.Label(frm_entrada, text="Operador", style="Campo.TLabel").grid(
             row=0, column=0, sticky="nw", padx=(0, 8), pady=(0, 4)
@@ -733,7 +732,7 @@ class FechamentoCaixaApp(tk.Tk):
             frm_entrada,
             textvariable=self.operador_var,
             values=self.cfg.operadores,
-            width=24,
+            width=18,
             state="readonly" if self.cfg.operadores else "normal",
         )
         self.combo_operador.grid(row=0, column=1, sticky="ew", pady=(0, 4))
@@ -741,7 +740,7 @@ class FechamentoCaixaApp(tk.Tk):
         ttk.Label(frm_entrada, text="Data (DD/MM/AAAA)", style="Campo.TLabel").grid(
             row=0, column=2, sticky="nw", padx=(16, 8), pady=(0, 4)
         )
-        self.entrada_data = ttk.Entry(frm_entrada, textvariable=self.data_var, width=14)
+        self.entrada_data = ttk.Entry(frm_entrada, textvariable=self.data_var, width=12)
         self.entrada_data.grid(row=0, column=3, sticky="w", pady=(0, 4))
 
         ttk.Label(frm_entrada, text="Forma de pagamento", style="Campo.TLabel").grid(
@@ -752,15 +751,15 @@ class FechamentoCaixaApp(tk.Tk):
             values=self.cfg.formas_pagamento,
             textvariable=self.forma_var,
             state="readonly",
-            width=24,
+            width=18,
         )
         self.combo_forma.grid(row=1, column=1, sticky="ew", pady=(4, 0))
 
         ttk.Label(frm_entrada, text="Valor (R$)", style="Campo.TLabel").grid(
             row=1, column=2, sticky="nw", padx=(16, 8), pady=(4, 0)
         )
-        self.entrada_valor = ttk.Entry(frm_entrada, textvariable=self.valor_var, width=14)
-        self.entrada_valor.grid(row=1, column=3, sticky="ew", pady=(4, 0))
+        self.entrada_valor = ttk.Entry(frm_entrada, textvariable=self.valor_var, width=8)
+        self.entrada_valor.grid(row=1, column=3, sticky="w", pady=(4, 0))
         self.entrada_valor.bind("<Return>", lambda _event: self.incluir_lancamento())
         self.entrada_valor.bind("<FocusOut>", lambda _event: self._formatar_valor_digitado())
 
@@ -773,26 +772,20 @@ class FechamentoCaixaApp(tk.Tk):
 
         ttk.Button(
             botoes,
-            text="Incluir no grid",
+            text="+",
             style="Acao.TButton",
             command=self.incluir_lancamento,
         ).pack(side="left", padx=(0, 6))
         ttk.Button(
             botoes,
-            text="Limpar valor",
-            style="Acao.TButton",
-            command=self.limpar_valor,
-        ).pack(side="left", padx=(0, 6))
-        ttk.Button(
-            botoes,
-            text="Excluir selecionado",
+            text="-",
             style="Acao.TButton",
             command=self.excluir_lancamento_selecionado,
         ).pack(side="left")
 
-        # --- Zona 3: lista (expande com a janela) ---
+        # --- Zona 2: lista (expande com a janela) ---
         frm_lista = ttk.LabelFrame(aba_lancamento, text=" Movimentos do fechamento ", padding=(px, py))
-        frm_lista.grid(row=2, column=0, sticky="nsew", pady=(0, py))
+        frm_lista.grid(row=1, column=0, sticky="nsew", pady=(0, py))
         frm_lista.columnconfigure(0, weight=1)
         frm_lista.rowconfigure(0, weight=1)
 
@@ -827,9 +820,9 @@ class FechamentoCaixaApp(tk.Tk):
         self.grid_lancamentos.tag_configure("impar", background="#ffffff")
         self.grid_lancamentos.bind("<Delete>", lambda _event: self.excluir_lancamento_selecionado())
 
-        # --- Zona 4: rodape (resumo + impressao) ---
+        # --- Zona 3: rodape (resumo + impressao) ---
         frm_rodape = ttk.LabelFrame(aba_lancamento, text=" Resumo e impressão ", padding=(px, py))
-        frm_rodape.grid(row=3, column=0, sticky="ew")
+        frm_rodape.grid(row=2, column=0, sticky="ew")
         frm_rodape.columnconfigure(1, weight=1)
 
         linha_resumo = ttk.Frame(frm_rodape)
@@ -853,29 +846,38 @@ class FechamentoCaixaApp(tk.Tk):
         self.combo_impressora = ttk.Combobox(
             linha_imp,
             textvariable=self.impressora_var,
-            width=32,
+            width=22,
             state="readonly",
         )
         self.combo_impressora.grid(row=0, column=1, sticky="ew")
         self.combo_impressora.bind(
             "<<ComboboxSelected>>", lambda _event: self._salvar_impressora_selecionada()
         )
-        ttk.Button(linha_imp, text="Atualizar lista", command=self._popular_combo_impressoras).grid(
-            row=0, column=2, padx=(8, 16)
-        )
+        ttk.Button(
+            linha_imp, text="Sobre", width=9, style="Acao.TButton", command=self._abrir_modal_sobre
+        ).grid(row=0, column=2, padx=(8, 8))
+        ttk.Button(
+            linha_imp,
+            text="Atualizar",
+            width=9,
+            style="Acao.TButton",
+            command=self._popular_combo_impressoras,
+        ).grid(row=0, column=3, padx=(0, 16))
 
         grp_imp = ttk.Frame(linha_imp)
-        grp_imp.grid(row=0, column=3, sticky="e")
+        grp_imp.grid(row=0, column=4, sticky="e")
 
         ttk.Button(
             grp_imp,
-            text="PDF cupom",
+            text="PDF",
+            width=11,
             style="Acao.TButton",
             command=self.gerar_relatorio_pdf,
         ).pack(side="left", padx=(0, 6))
         ttk.Button(
             grp_imp,
-            text="Imprimir cupom",
+            text="Cupom",
+            width=11,
             style="Acao.TButton",
             command=self.imprimir_cupom,
         ).pack(side="left")
@@ -1149,6 +1151,7 @@ class FechamentoCaixaApp(tk.Tk):
         self._adicionar_bloco_pagamentos_cupom(
             linhas, bold_indices, lancamentos, largura=w
         )
+        self._adicionar_bloco_assinatura_cupom(linhas, largura=w, operador_cupom=operador_cupom)
         self._adicionar_espaco_final_cupom(linhas, largura=w, qtd_linhas=5)
         push(linha_pontilhada)
 
@@ -1217,6 +1220,16 @@ class FechamentoCaixaApp(tk.Tk):
     ) -> None:
         for _ in range(max(0, qtd_linhas)):
             linhas.append(linha_vazia_cupom(largura))
+
+    def _adicionar_bloco_assinatura_cupom(
+        self, linhas: list[str], *, largura: int, operador_cupom: str
+    ) -> None:
+        for _ in range(5):
+            linhas.append(linha_vazia_cupom(largura))
+        assinatura_linha = "_" * max(12, largura // 2)
+        linhas.append(centralizar(assinatura_linha, largura))
+        linhas.append(centralizar("Assinatura", largura))
+        linhas.append(centralizar(operador_cupom.strip() or "-", largura))
 
     def incluir_lancamento(self) -> None:
         operador = self.operador_var.get().strip()
