@@ -24,11 +24,22 @@ def _obter_diretorio_app() -> Path:
     return Path(__file__).resolve().parent
 
 
+def _obter_diretorio_recursos() -> Path:
+    """Diretório de recursos embutidos (PyInstaller) ou do projeto."""
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        return Path(base)
+    return Path(__file__).resolve().parent
+
+
 APP_DIR = _obter_diretorio_app()
+RESOURCE_DIR = _obter_diretorio_recursos()
 DB_PATH = APP_DIR / "fechamento_caixa.db"
 CONFIG_PATH = APP_DIR / "fechamento_caixa.ini"
 CUPOM_PATH = APP_DIR / "ultimo_cupom.txt"
 PDF_PATH = APP_DIR / "relatorio_fechamento.pdf"
+ICON_ICO_PATH = RESOURCE_DIR / "assets" / "icone_caixa_registradora.ico"
+ICON_PNG_PATH = RESOURCE_DIR / "assets" / "icone_caixa_registradora.png"
 # Bobina 80 mm em modo texto costuma ser 42-48 colunas (fonte A); mais que isso quebra linha na impressora.
 COLUNAS_CUPOM_PADRAO = 48
 COLUNAS_CUPOM_MIN = 32
@@ -597,6 +608,8 @@ class FechamentoCaixaApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Fechamento de Caixa - PDV")
+        self._icone_app_ref = None
+        self._aplicar_icone_janela()
         self.geometry("920x580")
         self.minsize(800, 480)
 
@@ -628,6 +641,31 @@ class FechamentoCaixaApp(tk.Tk):
         self.bind("<Control-i>", lambda _event: self.incluir_lancamento())
         self.protocol("WM_DELETE_WINDOW", self._ao_fechar)
 
+    def _aplicar_icone_janela(self) -> None:
+        """Aplica ícone da janela no app em dev e no executável."""
+        if getattr(sys, "frozen", False):
+            try:
+                # Em Windows, usar o próprio .exe garante o ícone da janela/taskbar.
+                self.iconbitmap(default=sys.executable)
+                return
+            except Exception:
+                pass
+
+        try:
+            if ICON_ICO_PATH.exists():
+                self.iconbitmap(default=str(ICON_ICO_PATH))
+                return
+        except Exception:
+            pass
+
+        try:
+            if ICON_PNG_PATH.exists():
+                self._icone_app_ref = tk.PhotoImage(file=str(ICON_PNG_PATH))
+                self.iconphoto(True, self._icone_app_ref)
+        except Exception:
+            # Se falhar, mantém o ícone padrão do sistema.
+            pass
+
     def _configurar_estilo(self) -> None:
         style = ttk.Style(self)
         temas = style.theme_names()
@@ -643,6 +681,7 @@ class FechamentoCaixaApp(tk.Tk):
         style.configure("Campo.TLabel", font=("Segoe UI", 9))
         style.configure("Total.TLabel", font=("Segoe UI", 12, "bold"), foreground="#0b6e4f")
         style.configure("Acao.TButton", padding=(6, 3))
+        style.configure("PlusMinus.TButton", font=("Segoe UI", 9, "bold"), padding=(4, 1))
 
     def _aplicar_textos_cabecalho_gui(self) -> None:
         self._cab_razao_var.set(self.cfg.razao_social.strip())
@@ -773,13 +812,13 @@ class FechamentoCaixaApp(tk.Tk):
         ttk.Button(
             botoes,
             text="+",
-            style="Acao.TButton",
+            style="PlusMinus.TButton",
             command=self.incluir_lancamento,
         ).pack(side="left", padx=(0, 6))
         ttk.Button(
             botoes,
             text="-",
-            style="Acao.TButton",
+            style="PlusMinus.TButton",
             command=self.excluir_lancamento_selecionado,
         ).pack(side="left")
 
