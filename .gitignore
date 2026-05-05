@@ -4,7 +4,6 @@ __pycache__/
 # Build/distribuição
 build_pyinstaller/
 *.spec
-distribuicao_exe.zip
 
 # Artefatos de execução
 fechamento_caixa.db
