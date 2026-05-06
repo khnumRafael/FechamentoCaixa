@@ -1,0 +1,17 @@
+PACOTE DE DISTRIBUICAO - FECHAMENTO DE CAIXA
+
+Arquivos desta pasta:
+- FechamentoCaixa.exe
+- fechamento_caixa.ini
+
+Como usar em outro computador:
+1) Copie esta pasta inteira para o computador destino.
+2) Execute FechamentoCaixa.exe.
+3) Se necessario, ajuste o arquivo fechamento_caixa.ini.
+
+Observacoes:
+- O banco fechamento_caixa.db sera criado automaticamente ao abrir o programa,
+  no mesmo diretorio do .exe (se ainda nao existir).
+- Arquivos gerados (cupom/PDF) tambem serao salvos nesta pasta.
+- Para impressao RAW/listagem de impressoras, recomenda-se ter pywin32 instalado
+  no ambiente quando executar via Python. No .exe, o suporte necessario ja vai embutido.

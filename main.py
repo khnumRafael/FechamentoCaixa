@@ -94,6 +94,7 @@ class ConfigCaixa:
     razao_social: str
     endereco_linhas: list[str]
     formas_pagamento: list[str]
+    forma_sinais: dict[str, int]
     operadores: list[str]
     impressao_esc_pos: bool
     impressao_linhas_negrito: int
@@ -108,6 +109,24 @@ def _split_lista_csv(texto: str) -> list[str]:
 
 def _ordenar_lista_alfabetica(valores: list[str]) -> list[str]:
     return sorted(valores, key=lambda s: s.casefold())
+
+
+def _parse_formas_pagamento(texto: str) -> tuple[list[str], dict[str, int]]:
+    formas: list[str] = []
+    sinais: dict[str, int] = {}
+    for item in _split_lista_csv(texto):
+        sinal = 1
+        nome = item.strip()
+        if nome.startswith("(+)-"):
+            nome = nome[4:].strip()
+        elif nome.startswith("(-)-"):
+            nome = nome[4:].strip()
+            sinal = -1
+        if not nome:
+            continue
+        formas.append(nome)
+        sinais[nome.casefold()] = sinal
+    return formas, sinais
 
 
 def _split_endereco_ini(texto: str) -> list[str]:
@@ -145,10 +164,12 @@ def garantir_arquivo_ini(caminho: Path) -> None:
 
 
 def config_caixa_padrao() -> ConfigCaixa:
+    formas = list(FORMAS_PAGAMENTO_PADRAO)
     return ConfigCaixa(
         razao_social="",
         endereco_linhas=[],
-        formas_pagamento=list(FORMAS_PAGAMENTO_PADRAO),
+        formas_pagamento=formas,
+        forma_sinais={forma.casefold(): 1 for forma in formas},
         operadores=[],
         impressao_esc_pos=True,
         impressao_linhas_negrito=5,
@@ -167,7 +188,7 @@ def _ini_booleano_sim(valor: str, padrao: bool) -> bool:
 
 def carregar_config_caixa(caminho: Path) -> ConfigCaixa:
     garantir_arquivo_ini(caminho)
-    parser = configparser.ConfigParser()
+    parser = configparser.ConfigParser(strict=False)
     try:
         lido = parser.read(caminho, encoding="utf-8")
         if not lido:
@@ -188,10 +209,12 @@ def carregar_config_caixa(caminho: Path) -> ConfigCaixa:
     razao = cup.get("razao_social", "").strip()
     endereco = _split_endereco_ini(cup.get("endereco", ""))
 
-    formas = _split_lista_csv(fp.get("lista", ""))
+    formas, forma_sinais = _parse_formas_pagamento(fp.get("lista", ""))
     if not formas:
         formas = list(FORMAS_PAGAMENTO_PADRAO)
+        forma_sinais = {forma.casefold(): 1 for forma in formas}
     formas = _ordenar_lista_alfabetica(formas)
+    forma_sinais = {forma.casefold(): forma_sinais.get(forma.casefold(), 1) for forma in formas}
 
     operadores = _split_lista_csv(op.get("lista", ""))
     operadores = _ordenar_lista_alfabetica(operadores)
@@ -214,6 +237,7 @@ def carregar_config_caixa(caminho: Path) -> ConfigCaixa:
         razao_social=razao,
         endereco_linhas=endereco,
         formas_pagamento=formas,
+        forma_sinais=forma_sinais,
         operadores=operadores,
         impressao_esc_pos=esc_pos,
         impressao_linhas_negrito=linhas_negrito,
@@ -692,7 +716,7 @@ class FechamentoCaixaApp(tk.Tk):
     def _configurar_combo_operadores_apos_ini(self) -> None:
         self.combo_operador["values"] = self.cfg.operadores
         if self.cfg.operadores:
-            self.combo_operador.configure(state="readonly")
+            self.combo_operador.configure(state="normal")
             self.operador_var.set(self.cfg.operadores[0])
         else:
             self.combo_operador.configure(state="normal")
@@ -772,7 +796,7 @@ class FechamentoCaixaApp(tk.Tk):
             textvariable=self.operador_var,
             values=self.cfg.operadores,
             width=18,
-            state="readonly" if self.cfg.operadores else "normal",
+            state="normal",
         )
         self.combo_operador.grid(row=0, column=1, sticky="ew", pady=(0, 4))
 
@@ -789,7 +813,7 @@ class FechamentoCaixaApp(tk.Tk):
             frm_entrada,
             values=self.cfg.formas_pagamento,
             textvariable=self.forma_var,
-            state="readonly",
+            state="normal",
             width=18,
         )
         self.combo_forma.grid(row=1, column=1, sticky="ew", pady=(4, 0))
@@ -1048,7 +1072,7 @@ class FechamentoCaixaApp(tk.Tk):
         self._salvar_opcao_impressao_ini("impressora_selecionada", selecao)
 
     def _salvar_opcao_impressao_ini(self, chave: str, valor: str) -> None:
-        parser = configparser.ConfigParser()
+        parser = configparser.ConfigParser(strict=False)
         try:
             parser.read(CONFIG_PATH, encoding="utf-8")
             if not parser.has_section("impressao"):
@@ -1301,7 +1325,8 @@ class FechamentoCaixaApp(tk.Tk):
             operador_caixa=operador,
             data_movimento=data_movimento,
             forma_pagamento=forma,
-            valor_centavos=valor_para_centavos(valor),
+            valor_centavos=valor_para_centavos(valor)
+            * self.cfg.forma_sinais.get(forma.casefold(), 1),
         )
         lancamento.id = self.db.inserir_lancamento(self.fechamento_id, lancamento)
 
